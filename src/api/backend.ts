@@ -104,7 +104,8 @@ export const useBackend = create<BackendState>()(
           if (!r.ok) throw new Error(`The server answered ${r.status}.`);
           const info = (await r.json()) as BackendInfo;
           let limits = get().limits;
-          try {
+          // the limits need the key; asking for them without one would only produce a 401 in the console
+          if (!info.authRequired || get().apiKey) try {
             const headers: Record<string, string> = get().apiKey ? { 'X-API-Key': get().apiKey } : {};
             const lr = await fetch(`${url}/v1/limits`, { headers, signal: ctrl.signal });
             if (lr.ok) limits = (await lr.json()) as BackendLimits;

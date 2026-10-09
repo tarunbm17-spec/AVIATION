@@ -26,3 +26,4 @@ public/demos/*.webm
 public/demos/*.mp4
 signaltwin-api/models/**/*.pt
 signaltwin-api/models/**/*.onnx
+*.local.txt
