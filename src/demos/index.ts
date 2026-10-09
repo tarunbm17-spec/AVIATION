@@ -1,4 +1,4 @@
-import { PerceptionSchema, VEHICLE_CLASSES, type DemandProfile, type JunctionConfig, type PerceptionResult, type VehicleClass } from '../contracts';
+import { PerceptionSchema, VEHICLE_CLASSES, type ComparisonResult, type DemandProfile, type JunctionConfig, type PerceptionResult, type VehicleClass } from '../contracts';
 import { binsFor } from '../engine/demand';
 import { DEFAULT_PARAMS } from '../engine/params';
 import { useApp } from '../store/app';
@@ -7,8 +7,7 @@ import { useVideo } from '../store/video';
 /**
  * Example videos. Each has a drawn junction and the analysis the back end produced for it, so choosing one in the top bar shows the
  * video with its detections, counts, queues, demand and the plan comparison straight away, without uploading anything.
- * The analysis files are in public/demos. The videos are stock footage with a watermark, so they are not in the repository:
- * put them in public/demos as <id>.webm to see the picture (the numbers work without them).
+ * The analysis files and the saved 20-seed comparisons are in public/demos, with the videos (stock footage with a watermark).
  */
 /** Busy-hour traffic assumed for an example, in vehicles per hour on North, South, East and West, and the share of each class. */
 export interface AssumedTraffic {
@@ -106,6 +105,22 @@ export async function loadDemo(d: Demo): Promise<void> {
   st.setServerVideo(null);
   st.setDemand(profile);
   st.setAppliedDemand(new Date().toISOString());
+  // the saved comparison also goes into the run history, so Experiments and Report have it without a run
+  const saved = await loadDemoComparison(d);
+  if (saved) {
+    const id = `run-${d.id}-compare`;
+    useApp.setState((x) => ({ runs: [{ id, kind: 'compare' as const, label: `${d.name}, saved run`, at: new Date().toISOString(), scenarioId: 'A', seeds: saved.seeds, data: saved }, ...x.runs.filter((r) => r.id !== id)].slice(0, 24) }));
+  }
+}
+
+/** The 20-seed plan comparison saved for an example (Scenario A, on its assumed busy-hour traffic), or null if the file is missing. */
+export async function loadDemoComparison(d: Demo): Promise<ComparisonResult | null> {
+  try {
+    const j = await getJson<{ data: ComparisonResult }>(`${base()}${d.key}.comparison.json`);
+    return j.data ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** Leaves an example: its video and analysis go, so the next junction starts clean. */

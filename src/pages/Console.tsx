@@ -8,6 +8,7 @@ import { PhaseTimeline, Scoreboard, Transport } from '../components/widgets';
 import { LineChart, type Series } from '../components/charts';
 import { Button, DataTable, Meter, PageHeader, Segmented, SliderField, Tabs, Toggle, useMedia, toast, SelectField, type Column } from '../components/ui';
 import { useApp } from '../store/app';
+import { demoOf, loadDemoComparison } from '../demos';
 import { useSetup } from '../hooks/useSetup';
 import { useRunner } from '../hooks/useRunner';
 import { useCommands } from '../shell/Layout';
@@ -124,6 +125,23 @@ export default function Console() {
   const [job, setJob] = useState<Job | null>(null);
   const [prog, setProg] = useState<{ done: number; total: number; label: string } | null>(null);
   const [result, setResult] = useState<ComparisonResult | null>(null);
+  const [savedRun, setSavedRun] = useState(false);
+  const junctionId = useApp((s) => s.junction.id);
+  // an example comes with its 20-seed comparison already run, so nobody has to wait for it
+  useEffect(() => {
+    const d = demoOf(junctionId);
+    if (!d || scKey !== 'A') return;
+    let live = true;
+    void loadDemoComparison(d).then((r) => {
+      if (live && r) {
+        setResult(r);
+        setSavedRun(true);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [junctionId, scKey]);
   useEffect(() => () => job?.cancel(), [job]);
   const runSeeds = async () => {
     const j = api.runExperiment({ type: 'compare', setup, kinds: ['observed', 'webster', 'vac', 'signaltwin'], seeds: params.seeds }, (p) => {
@@ -136,6 +154,7 @@ export default function Console() {
       const r = await j.promise;
       if (r.type === 'compare') {
         setResult(r.result);
+        setSavedRun(false);
         addRun({ id: `run-${Date.now()}`, kind: 'compare', label: `${scenario.name}, console`, at: new Date().toISOString(), scenarioId: scenario.id, seeds: r.result.seeds, data: r.result });
         toast(`Compared ${r.result.seeds} seeds. Results are below and in Experiments.`);
       }
@@ -485,6 +504,7 @@ export default function Console() {
             </div>
           )}
           {!result && !prog && <p className="muted">No comparison yet. Run {params.seeds} seeds to get mean delay, fairness and throughput with 95 percent confidence intervals for the observed plan, the Webster plan and SignalTwin.</p>}
+          {result && savedRun && <p className="muted">Saved run for this example: {result.seeds} seeds on its assumed busy-hour traffic. Run again to recompute it.</p>}
           {result && <ResultTable result={result} />}
           {result && (
             <p style={{ marginTop: 12 }}>
