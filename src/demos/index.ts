@@ -32,6 +32,11 @@ const mix = (twoWheeler: number, car: number, autoRickshaw: number, bus: number,
 
 export const DEMOS: Demo[] = [
   {
+    key: 'hcm', id: 'demo-hcm', name: 'Example: Ho Chi Minh City intersection',
+    summary: 'Elevated view of a busy four-road junction, mostly motorbikes, with taxis, cars and buses.',
+    assumed: { vph: [1500, 1100, 1700, 900], mix: mix(0.78, 0.13, 0.02, 0.04, 0.03) },
+  },
+  {
     key: 'topdown', id: 'demo-topdown', name: 'Example: overhead four-way junction',
     summary: 'Drone view, four approaches, queues on three roads while one flows.',
     assumed: { vph: [560, 880, 740, 620], mix: mix(0.2, 0.6, 0.06, 0.07, 0.07), fairnessCap: 120 },
