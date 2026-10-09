@@ -49,6 +49,48 @@ Rate limits are kept in memory per process. Behind several containers use the pr
 
 Ultralytics YOLO is AGPL-3.0. See `signaltwin-api/README.md`.
 
+## Demo day: the back end on your own computer, with a public address
+
+This costs nothing and uses the back end exactly as it runs on your machine (models included). The computer must stay on, awake and online while you demo.
+
+1. Start the back end so that only your Vercel site may call it, and a key is required:
+
+   ```
+   cd signaltwin-api
+   $env:ALLOWED_ORIGINS = "https://YOUR-SITE.vercel.app,http://localhost:5173"
+   $env:API_KEY = "a-long-random-secret-you-choose"
+   .\.venv\Scripts\python.exe -m uvicorn signaltwin_api.main:app --host 127.0.0.1 --port 8000
+   ```
+
+   `ALLOWED_ORIGINS` must match the site's address exactly: https, no trailing slash. Add a custom domain too if you use one.
+2. Give it an https address with a Cloudflare quick tunnel (no account needed). Install once with `winget install Cloudflare.cloudflared`, then in a second window run `cloudflared tunnel --url http://localhost:8000`. It prints an address like `https://something-random.trycloudflare.com`. The address changes every time you start it.
+3. Open your Vercel site, click the **Back end** badge, paste that address and the key, and press Check again. The badge turns to Back end connected. Nothing needs redeploying, because the address is saved in that browser.
+4. Test the whole path once before the demo: upload a short clip, analyse it, open Perception.
+
+Anyone who has the address and the key can use your back end, so share the key only with people you trust and close the tunnel afterwards.
+
+## A host that stays on
+
+Use a small cloud server (Ubuntu 22.04, at least 2 CPUs and 4 GB of memory) with Docker.
+
+1. `git clone` the repository, then `cd signaltwin-api` and `cp .env.example .env`. Set `ALLOWED_ORIGINS` and `API_KEY` in `.env`.
+2. `docker compose up -d --build`. The first build downloads PyTorch (CPU) and the small model, which takes several minutes.
+3. For the drone model: `mkdir extra-models`, put the `.pt` file in it (for example `visdrone-yolo11s.pt`), and `docker compose restart api`. It then appears in Setup's Camera view.
+4. Put HTTPS in front. With a domain pointing at the server, Caddy is the shortest way. A `Caddyfile` of
+
+   ```
+   api.example.com {
+     reverse_proxy localhost:8000 {
+       flush_interval -1
+     }
+   }
+   ```
+
+   gets a certificate by itself. `flush_interval -1` keeps progress updates flowing. Open ports 80 and 443 on the server's firewall and keep 8000 closed.
+5. In Vercel set `VITE_API_URL=https://api.example.com` and redeploy. Check the Back end badge.
+
+The Docker setup has not been built here, so expect small fixes the first time.
+
 ## Supabase (optional)
 
 The default storage is local disk plus SQLite, which is enough for one server. `STORAGE=supabase` keeps records in Postgres and files in Storage buckets, so the data survives the container.

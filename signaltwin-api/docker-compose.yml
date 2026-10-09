@@ -13,6 +13,8 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
     volumes:
       - signaltwin-data:/data
+      # extra detection models, for example the drone model: put .pt files in ./extra-models (create the folder) and they appear in Setup's Camera view
+      - ./extra-models:/app/models/extra
     restart: unless-stopped
     deploy:
       resources:
